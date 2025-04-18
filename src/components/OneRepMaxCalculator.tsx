@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { STORAGE_KEYS, saveToStorage, getFromStorage } from '../utils/localStorage';
 
 const OneRepMaxCalculator = () => {
   const [weight, setWeight] = useState<number | ''>('');
@@ -7,6 +8,36 @@ const OneRepMaxCalculator = () => {
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [formula, setFormula] = useState<string>('brzycki');
+  
+  // Ref to track if values are already loaded from localStorage
+  const valuesLoaded = useRef(false);
+
+  // Load saved data from localStorage on component mount
+  useEffect(() => {
+    if (!valuesLoaded.current) {
+      const savedWeight = getFromStorage<number | ''>(STORAGE_KEYS.LIFTING_WEIGHT, '');
+      const savedReps = getFromStorage<number | ''>(STORAGE_KEYS.REPS, '');
+      const savedFormula = getFromStorage<string>(STORAGE_KEYS.FORMULA, 'brzycki');
+      const savedResult = getFromStorage<number | null>(STORAGE_KEYS.ONE_REP_MAX_RESULT, null);
+      
+      setWeight(savedWeight);
+      setReps(savedReps);
+      setFormula(savedFormula);
+      setResult(savedResult);
+      
+      valuesLoaded.current = true;
+    }
+  }, []);
+
+  // Save to localStorage when values change
+  useEffect(() => {
+    if (valuesLoaded.current) {
+      saveToStorage(STORAGE_KEYS.LIFTING_WEIGHT, weight);
+      saveToStorage(STORAGE_KEYS.REPS, reps);
+      saveToStorage(STORAGE_KEYS.FORMULA, formula);
+      saveToStorage(STORAGE_KEYS.ONE_REP_MAX_RESULT, result);
+    }
+  }, [weight, reps, formula, result]);
   
   const calculateOneRepMax = () => {
     if (weight !== '' && reps !== '') {
@@ -47,10 +78,19 @@ const OneRepMaxCalculator = () => {
     <div>
       <h2 className="text-xl md:text-2xl font-bold mb-4 text-center">One Rep Max Calculator</h2>
       
+      <div className="divider">Measurements</div>
+      
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="form-control w-full">
           <label className="label">
             <span className="label-text font-medium">Weight lifted (kg)</span>
+            <span className="label-text-alt">
+              <div className="tooltip" data-tip="The weight you lifted for multiple reps">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="stroke-info w-4 h-4">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+              </div>
+            </span>
           </label>
           <input
             type="number"
@@ -58,13 +98,19 @@ const OneRepMaxCalculator = () => {
             placeholder="Enter weight"
             className="input input-bordered input-primary w-full"
             value={weight}
-            onChange={(e) => setWeight(e.target.value ? parseFloat(e.target.value) : '')}
-          />
+            onChange={(e) => setWeight(e.target.value ? parseFloat(e.target.value) : '')} />
         </div>
-        
+
         <div className="form-control w-full">
           <label className="label">
             <span className="label-text font-medium">Repetitions</span>
+            <span className="label-text-alt">
+              <div className="tooltip" data-tip="Number of reps performed with this weight">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="stroke-info w-4 h-4">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+              </div>
+            </span>
           </label>
           <input
             type="number"
@@ -74,29 +120,28 @@ const OneRepMaxCalculator = () => {
             min="1"
             max="36"
             value={reps}
-            onChange={(e) => setReps(e.target.value ? parseFloat(e.target.value) : '')}
-          />
+            onChange={(e) => setReps(e.target.value ? parseFloat(e.target.value) : '')} />
         </div>
       </div>
-      
+
       <div className="form-control w-full mt-4">
         <label className="label">
           <span className="label-text font-medium">Formula</span>
         </label>
         <div className="tabs tabs-boxed flex overflow-x-auto">
-          <a 
+          <a
             className={`tab ${formula === 'brzycki' ? 'tab-active' : ''}`}
             onClick={() => setFormula('brzycki')}
           >
             Brzycki
           </a>
-          <a 
+          <a
             className={`tab ${formula === 'epley' ? 'tab-active' : ''}`}
             onClick={() => setFormula('epley')}
           >
             Epley
           </a>
-          <a 
+          <a
             className={`tab ${formula === 'lombardi' ? 'tab-active' : ''}`}
             onClick={() => setFormula('lombardi')}
           >
@@ -104,27 +149,29 @@ const OneRepMaxCalculator = () => {
           </a>
         </div>
       </div>
-      
+
       <div className="text-center mt-3 mb-2">
         <span className="text-xs text-base-content/60 font-mono">
-          {formula === 'brzycki' 
-            ? "1RM = Weight × (36 / (37 - reps))" 
+          {formula === 'brzycki'
+            ? "1RM = Weight × (36 / (37 - reps))"
             : formula === 'epley'
               ? "1RM = Weight × (1 + 0.0333 × reps)"
               : "1RM = Weight × reps^0.1"}
         </span>
       </div>
-      
+
+      <div className="divider"></div>
+
       <div className="flex justify-center mt-4">
-        <button 
-          className="btn btn-primary w-full md:btn-wide" 
+        <button
+          className="btn btn-primary w-full md:btn-wide"
           onClick={calculateOneRepMax}
           disabled={loading || weight === '' || reps === ''}
         >
           {loading ? <span className="loading loading-spinner"></span> : 'Calculate 1RM'}
         </button>
       </div>
-      
+
       {error && (
         <div className="alert alert-error mt-4">
           <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
@@ -133,7 +180,7 @@ const OneRepMaxCalculator = () => {
           <span>{error}</span>
         </div>
       )}
-      
+
       {result !== null && (
         <div className="mt-6">
           <div className="stats bg-primary text-primary-content shadow w-full flex-col md:flex-row">
@@ -143,9 +190,9 @@ const OneRepMaxCalculator = () => {
               <div className="stat-desc text-primary-content/70">Based on {formula} formula</div>
             </div>
           </div>
-          
+
           <div className="divider">Training Percentages</div>
-          
+
           <div className="overflow-x-auto">
             <table className="table table-zebra w-full">
               <thead>
@@ -157,7 +204,7 @@ const OneRepMaxCalculator = () => {
               </thead>
               <tbody>
                 <tr className="hover">
-                  <td>95%</td>
+                  <td>95%</td>                  
                   <td className="font-mono">{(result * 0.95).toFixed(1)}</td>
                   <td><span className="badge badge-secondary">2-3 reps</span> Power/Strength</td>
                 </tr>

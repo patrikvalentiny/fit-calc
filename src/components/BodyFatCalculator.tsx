@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { STORAGE_KEYS, saveToStorage, getFromStorage, standardizeUnit, getUnitDisplayValue } from '../utils/localStorage';
 
 const BodyFatCalculator = () => {
   const [gender, setGender] = useState<'male' | 'female'>('male');
@@ -10,6 +11,120 @@ const BodyFatCalculator = () => {
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [unit, setUnit] = useState<string>('cm');
+  
+  // Refs to track loading and conversion state
+  const valuesLoaded = useRef(false);
+  const initialConversionDone = useRef(false);
+
+  // Load saved data from localStorage on component mount
+  useEffect(() => {
+    if (!valuesLoaded.current) {
+      // Get standardized unit
+      const savedUnit = standardizeUnit(getFromStorage<string>(STORAGE_KEYS.UNIT_PREFERENCE, 'metric'));
+      // Convert to display value for body fat calculator
+      const unitValue = getUnitDisplayValue(savedUnit, 'bodyFat');
+      
+      const savedGender = getFromStorage<'male' | 'female'>(STORAGE_KEYS.GENDER, 'male');
+      const savedHeight = getFromStorage<number | ''>(STORAGE_KEYS.HEIGHT, '');
+      const savedWaist = getFromStorage<number | ''>(STORAGE_KEYS.WAIST, '');
+      const savedNeck = getFromStorage<number | ''>(STORAGE_KEYS.NECK, '');
+      const savedHip = getFromStorage<number | ''>(STORAGE_KEYS.HIP, '');
+      const savedResult = getFromStorage<number | null>(STORAGE_KEYS.BODY_FAT_RESULT, null);
+      
+      setUnit(unitValue);
+      setGender(savedGender);
+      setHeight(savedHeight);
+      setWaist(savedWaist);
+      setNeck(savedNeck);
+      setHip(savedHip);
+      setResult(savedResult);
+      
+      valuesLoaded.current = true;
+      initialConversionDone.current = true;
+    }
+  }, []);
+
+  // Save to localStorage when values change
+  useEffect(() => {
+    if (valuesLoaded.current) {
+      // Save standardized unit
+      saveToStorage(STORAGE_KEYS.UNIT_PREFERENCE, unit === 'cm' ? 'metric' : 'imperial');
+    }
+  }, [unit]);
+
+  useEffect(() => {
+    saveToStorage(STORAGE_KEYS.GENDER, gender);
+  }, [gender]);
+
+  useEffect(() => {
+    saveToStorage(STORAGE_KEYS.HEIGHT, height);
+  }, [height]);
+
+  useEffect(() => {
+    saveToStorage(STORAGE_KEYS.WAIST, waist);
+  }, [waist]);
+
+  useEffect(() => {
+    saveToStorage(STORAGE_KEYS.NECK, neck);
+  }, [neck]);
+
+  useEffect(() => {
+    saveToStorage(STORAGE_KEYS.HIP, hip);
+  }, [hip]);
+
+  useEffect(() => {
+    saveToStorage(STORAGE_KEYS.BODY_FAT_RESULT, result);
+  }, [result]);
+
+  // Convert values when switching units
+  useEffect(() => {
+    // Skip the initial conversion
+    if (!initialConversionDone.current) {
+      initialConversionDone.current = true;
+      return;
+    }
+
+    if (height !== '') {
+      if (unit === 'cm') {
+        // Convert from inches to cm
+        setHeight(parseFloat((height as number * 2.54).toFixed(1)));
+      } else {
+        // Convert from cm to inches
+        setHeight(parseFloat((height as number / 2.54).toFixed(1)));
+      }
+    }
+
+    if (neck !== '') {
+      if (unit === 'cm') {
+        // Convert from inches to cm
+        setNeck(parseFloat((neck as number * 2.54).toFixed(1)));
+      } else {
+        // Convert from cm to inches
+        setNeck(parseFloat((neck as number / 2.54).toFixed(1)));
+      }
+    }
+
+    if (waist !== '') {
+      if (unit === 'cm') {
+        // Convert from inches to cm
+        setWaist(parseFloat((waist as number * 2.54).toFixed(1)));
+      } else {
+        // Convert from cm to inches
+        setWaist(parseFloat((waist as number / 2.54).toFixed(1)));
+      }
+    }
+
+    if (hip !== '') {
+      if (unit === 'cm') {
+        // Convert from inches to cm
+        setHip(parseFloat((hip as number * 2.54).toFixed(1)));
+      } else {
+        // Convert from cm to inches
+        setHip(parseFloat((hip as number / 2.54).toFixed(1)));
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [unit]);
 
   const calculateBodyFat = () => {
     if (height !== '' && waist !== '' && neck !== '' && (gender === 'male' || hip !== '')) {

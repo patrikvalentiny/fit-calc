@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { STORAGE_KEYS, saveToStorage, getFromStorage, standardizeUnit } from '../utils/localStorage';
 
 const BmrCalculator = () => {
   const [weight, setWeight] = useState<number | ''>('');
@@ -9,6 +10,71 @@ const BmrCalculator = () => {
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [activityLevel, setActivityLevel] = useState<number>(1.2);
+  const [unit, setUnit] = useState<string>('metric');
+  
+  // Ref to track if values are already loaded from localStorage
+  const valuesLoaded = useRef(false);
+
+  // Load saved data from localStorage on component mount
+  useEffect(() => {
+    if (!valuesLoaded.current) {
+      const savedUnit = standardizeUnit(getFromStorage<string>(STORAGE_KEYS.UNIT_PREFERENCE, 'metric'));
+      const savedWeight = getFromStorage<number | ''>(STORAGE_KEYS.WEIGHT, '');
+      const savedHeight = getFromStorage<number | ''>(STORAGE_KEYS.HEIGHT, '');
+      const savedAge = getFromStorage<number | ''>(STORAGE_KEYS.AGE, '');
+      const savedGender = getFromStorage<string>(STORAGE_KEYS.GENDER, 'male');
+      const savedActivityLevel = getFromStorage<number>(STORAGE_KEYS.ACTIVITY_LEVEL, 1.2);
+      const savedResult = getFromStorage<number | null>(STORAGE_KEYS.BMR_RESULT, null);
+      
+      setUnit(savedUnit);
+      setWeight(savedWeight);
+      setHeight(savedHeight);
+      setAge(savedAge);
+      setGender(savedGender);
+      setActivityLevel(savedActivityLevel);
+      setResult(savedResult);
+      
+      valuesLoaded.current = true;
+    }
+  }, []);
+
+  // Save to localStorage when values change
+  useEffect(() => {
+    if (valuesLoaded.current) {
+      saveToStorage(STORAGE_KEYS.UNIT_PREFERENCE, unit);
+      saveToStorage(STORAGE_KEYS.WEIGHT, weight);
+      saveToStorage(STORAGE_KEYS.HEIGHT, height);
+      saveToStorage(STORAGE_KEYS.AGE, age);
+      saveToStorage(STORAGE_KEYS.GENDER, gender);
+      saveToStorage(STORAGE_KEYS.ACTIVITY_LEVEL, activityLevel);
+      saveToStorage(STORAGE_KEYS.BMR_RESULT, result);
+    }
+  }, [unit, weight, height, age, gender, activityLevel, result]);
+
+  // Convert values when switching units
+  useEffect(() => {
+    if (!valuesLoaded.current) return;
+    
+    // Convert values when unit changes
+    if (weight !== '') {
+      const convertedWeight = unit === 'metric'
+        ? parseFloat((weight as number / 2.20462).toFixed(1)) // Convert lbs to kg
+        : parseFloat((weight as number * 2.20462).toFixed(1)); // Convert kg to lbs
+      setWeight(convertedWeight);
+    }
+
+    if (height !== '') {
+      const convertedHeight = unit === 'metric'
+        ? parseFloat((height as number * 2.54).toFixed(1)) // Convert inches to cm
+        : parseFloat((height as number / 2.54).toFixed(1)); // Convert cm to inches
+      setHeight(convertedHeight);
+    }
+  }, [unit]); // Only run when unit changes
+
+  const handleUnitChange = (newUnit: string) => {
+    if (newUnit === unit) return;
+    setUnit(newUnit);
+  };
 
   const calculateBmr = () => {
     if (weight !== '' && height !== '' && age !== '') {
@@ -17,9 +83,15 @@ const BmrCalculator = () => {
       
       try {
         // Calculate BMR using Mifflin-St Jeor Equation
-        const w = weight as number;
-        const h = height as number;
+        let w = weight as number;
+        let h = height as number;
         const a = age as number;
+        
+        // Convert imperial to metric for calculation if needed
+        if (unit === 'imperial') {
+          w = w / 2.20462; // Convert lbs to kg
+          h = h * 2.54; // Convert inches to cm
+        }
         
         let bmr: number;
         if (gender === 'male') {
@@ -55,15 +127,35 @@ const BmrCalculator = () => {
       
       <div className="divider">Your Details</div>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="form-control w-full mx-auto md:max-w-xs">
+        <label className="label">
+          <span className="label-text font-medium">Unit of Measurement</span>
+        </label>
+        <div className="input-group">
+          <button 
+            className={`btn flex-1 ${unit === 'metric' ? 'btn-active' : ''}`}
+            onClick={() => handleUnitChange('metric')}
+          >
+            Metric
+          </button>
+          <button 
+            className={`btn flex-1 ${unit === 'imperial' ? 'btn-active' : ''}`}
+            onClick={() => handleUnitChange('imperial')}
+          >
+            Imperial
+          </button>
+        </div>
+      </div>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
         <div className="form-control w-full">
           <label className="label">
-            <span className="label-text font-medium">Weight (kg)</span>
+            <span className="label-text font-medium">Weight ({unit === 'metric' ? 'kg' : 'lbs'})</span>
           </label>
           <input
             type="number"
             inputMode="decimal"
-            placeholder="Enter weight"
+            placeholder={`Enter weight (${unit === 'metric' ? 'kg' : 'lbs'})`}
             className="input input-bordered input-primary w-full"
             value={weight}
             onChange={(e) => setWeight(e.target.value ? parseFloat(e.target.value) : '')}
@@ -72,12 +164,12 @@ const BmrCalculator = () => {
         
         <div className="form-control w-full">
           <label className="label">
-            <span className="label-text font-medium">Height (cm)</span>
+            <span className="label-text font-medium">Height ({unit === 'metric' ? 'cm' : 'inches'})</span>
           </label>
           <input
             type="number"
             inputMode="decimal"
-            placeholder="Enter height"
+            placeholder={`Enter height (${unit === 'metric' ? 'cm' : 'inches'})`}
             className="input input-bordered input-primary w-full"
             value={height}
             onChange={(e) => setHeight(e.target.value ? parseFloat(e.target.value) : '')}
@@ -179,13 +271,13 @@ const BmrCalculator = () => {
               <div className="stat-desc text-primary-content/70">calories/day</div>
             </div>
             
-            {activityLevel > 1.2 && (
-              <div className="stat">
-                <div className="stat-title text-primary-content/80">Daily Calorie Need</div>
-                <div className="stat-value">{(result * activityLevel).toFixed(0)}</div>
-                <div className="stat-desc text-primary-content/70">calories/day with activity</div>
+            <div className="stat">
+              <div className="stat-title text-primary-content/80">Daily Calorie Need</div>
+              <div className="stat-value">{(result * activityLevel).toFixed(0)}</div>
+              <div className="stat-desc text-primary-content/70">
+                calories/day with {activityLevel === 1.2 ? 'sedentary' : 'active'} lifestyle
               </div>
-            )}
+            </div>
           </div>
           
           <div className="alert alert-info shadow-lg mt-4">

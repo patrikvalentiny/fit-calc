@@ -13,14 +13,14 @@ const Navigation: React.FC<NavigationProps> = ({
     { id: 'bmi', name: 'BMI Calculator', category: 'Basic' },
     { id: 'bmr', name: 'BMR Calculator', category: 'Basic' },
     { id: 'orm', name: 'One Rep Max', category: 'Fitness' },
-    { id: 'mhr', name: 'Max Heart Rate', category: 'Fitness' },
+    // { id: 'mhr', name: 'Max Heart Rate', category: 'Fitness' },
     
     // Body measurement calculators
-    { id: 'whr', name: 'Waist-to-Hip Ratio', category: 'Body Measurement' },
-    { id: 'wth', name: 'Waist-to-Height', category: 'Body Measurement' },
+    // { id: 'whr', name: 'Waist-to-Hip Ratio', category: 'Body Measurement' },
+    // { id: 'wth', name: 'Waist-to-Height', category: 'Body Measurement' },
     { id: 'bf', name: 'Body Fat %', category: 'Body Measurement' },
-    { id: 'frame', name: 'Body Frame Size', category: 'Body Measurement' },
-    { id: 'ctw', name: 'Chest-to-Waist', category: 'Body Measurement' }
+    // { id: 'frame', name: 'Body Frame Size', category: 'Body Measurement' },
+    // { id: 'ctw', name: 'Chest-to-Waist', category: 'Body Measurement' }
   ];
 
   // Find current calculator name for dropdown display
