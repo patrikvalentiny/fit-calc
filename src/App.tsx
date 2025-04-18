@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import './App.css'
+import { getFromStorage, saveToStorage, STORAGE_KEYS } from './utils/localStorage'
 
 // Import calculator components
 import BmiCalculator from './components/BmiCalculator'
@@ -7,14 +8,27 @@ import BmrCalculator from './components/BmrCalculator'
 import OneRepMaxCalculator from './components/OneRepMaxCalculator'
 import MaxHeartRateCalculator from './components/MaxHeartRateCalculator'
 import WaistToHipRatioCalculator from './components/WaistToHipRatioCalculator'
+import BodyFatCalculator from './components/BodyFatCalculator'
+import WaistToHeightCalculator from './components/WaistToHeightCalculator'
+import BodyFrameCalculator from './components/BodyFrameCalculator'
+import ChestToWaistCalculator from './components/ChestToWaistCalculator'
 import Navigation from './components/Navigation'
 
 function App() {
-  const [activeCalculator, setActiveCalculator] = useState('bmi');
+  // Initialize activeCalculator with the value from localStorage or default to 'bmi'
+  const [activeCalculator, setActiveCalculator] = useState(() => 
+    getFromStorage<string>(STORAGE_KEYS.LAST_ACTIVE_CALCULATOR, 'bmi')
+  );
+
+  // Save activeCalculator to localStorage whenever it changes
+  useEffect(() => {
+    saveToStorage(STORAGE_KEYS.LAST_ACTIVE_CALCULATOR, activeCalculator);
+  }, [activeCalculator]);
 
   // Render the active calculator component
   const renderCalculator = () => {    
     switch (activeCalculator) {
+      // Basic calculators
       case 'bmi':
         return <BmiCalculator />
       case 'bmr':
@@ -23,8 +37,19 @@ function App() {
         return <OneRepMaxCalculator />
       case 'mhr':
         return <MaxHeartRateCalculator />
+      
+      // Body measurement calculators  
       case 'whr':
         return <WaistToHipRatioCalculator />
+      case 'wth':
+        return <WaistToHeightCalculator />
+      case 'bf':
+        return <BodyFatCalculator />
+      case 'frame':
+        return <BodyFrameCalculator />
+      case 'ctw':
+        return <ChestToWaistCalculator />
+      
       default:
         return <BmiCalculator />
     }
