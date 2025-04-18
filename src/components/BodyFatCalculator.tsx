@@ -30,6 +30,8 @@ interface BodyFatTableProps {
   selectedAgeGroup?: string;
   onAgeGroupChange?: (ageGroup: string) => void;
   footnote?: string;
+  weight?: number | '';  // Add weight parameter
+  unit?: string;        // Add unit parameter for display
 }
 
 const BodyFatCalculator = () => {
@@ -523,6 +525,8 @@ const BodyFatCalculator = () => {
                             { label: 'Obese', color: 'error', min: 32, max: null },
                           ]
                     }
+                    weight={weight}
+                    unit={unit}
                   />
 
                   {/* WHO/NIH Guidelines */}
@@ -534,6 +538,8 @@ const BodyFatCalculator = () => {
                     selectedAgeGroup={nihAgeGroup}
                     onAgeGroupChange={setNihAgeGroup}
                     categories={getNIHCategories(gender, nihAgeGroup)}
+                    weight={weight}
+                    unit={unit}
                   />
 
                   {/* ACSM Standards */}
@@ -546,6 +552,8 @@ const BodyFatCalculator = () => {
                     onAgeGroupChange={setAcsmAgeGroup}
                     categories={getACSMCategories(gender, acsmAgeGroup)}
                     footnote="* Adapted from ACSM's Health-Related Physical Fitness Assessment manual, 5th Edition."
+                    weight={weight}
+                    unit={unit}
                   />
                 </div>
               )}
@@ -835,13 +843,14 @@ const getACSMCategories = (gender: 'male' | 'female', ageGroup: string): Categor
 const BodyFatTable = ({ 
   title, 
   subtitle, 
-  // gender, 
   result, 
   categories,
   ageGroups,
   selectedAgeGroup,
   onAgeGroupChange,
-  footnote 
+  footnote,
+  weight,
+  unit
 }: BodyFatTableProps) => {
   const formatRange = (min: number, max: number | null) => {
     if (max === null) {
@@ -853,6 +862,14 @@ const BodyFatTable = ({
     }
   };
 
+  const calculateWeightAtBodyFat = (targetBodyFat: number, currentWeight: number, currentBodyFat: number) => {
+    // Calculate lean mass (stays constant)
+    const leanMass = currentWeight * (1 - currentBodyFat / 100);
+    // Calculate new weight based on target body fat
+    const newWeight = leanMass / (1 - targetBodyFat / 100);
+    return newWeight.toFixed(1);
+  };
+
   const isInRange = (min: number, max: number | null, value: number) => {
     if (max === null) {
       return value >= min;
@@ -862,6 +879,8 @@ const BodyFatTable = ({
       return value >= min && value < max;
     }
   };
+
+  const weightUnit = unit === 'cm' ? 'kg' : 'lbs';
 
   return (
     <div className="border border-base-300 rounded-lg overflow-hidden">
@@ -899,7 +918,7 @@ const BodyFatTable = ({
           <thead>
             <tr className="bg-base-200">
               <th className="text-xs font-medium">Category</th>
-              <th className="text-xs font-medium">Body Fat Range</th>
+              <th className="text-xs font-medium">Body Fat Range {weight && `(Est. Weight)`}</th>
             </tr>
           </thead>
           <tbody>
@@ -909,9 +928,24 @@ const BodyFatTable = ({
                 className={isInRange(category.min, category.max, result) ? 'bg-accent/10' : ''}
               >
                 <td>
-                  <span className={`badge badge-${category.color} badge-sm py-1`}>{category.label}</span>
+                      <span className={`badge badge-${category.color} badge-sm py-1 px-2 text-xs whitespace-normal h-auto min-h-[1.5rem] leading-tight flex items-center justify-center`}>
+                      {category.label}
+                      </span>
                 </td>
-                <td className="text-sm">{formatRange(category.min, category.max)}</td>
+                <td className="text-sm">
+                  {formatRange(category.min, category.max)}
+                  {weight && (
+                    <span className="text-xs ml-1 opacity-90">
+                      {category.max === null ? (
+                        `(${calculateWeightAtBodyFat(category.min, weight as number, result)}+ ${weightUnit})`
+                      ) : category.min === 0 ? (
+                        `(<${calculateWeightAtBodyFat(category.max, weight as number, result)} ${weightUnit})`
+                      ) : (
+                        `(${calculateWeightAtBodyFat(category.min, weight as number, result)}-${calculateWeightAtBodyFat(category.max, weight as number, result)} ${weightUnit})`
+                      )}
+                    </span>
+                  )}
+                </td>
               </tr>
             ))}
           </tbody>
