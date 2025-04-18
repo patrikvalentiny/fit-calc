@@ -26,6 +26,12 @@ export const STORAGE_KEYS = {
   FORMULA: 'fitCalc.formula',
   ONE_REP_MAX_RESULT: 'fitCalc.oneRepMaxResult',
 
+  // Calculator customization
+  CALCULATOR_ORDER: 'fitCalc.calculatorOrder',
+  CALCULATOR_FAVORITES: 'fitCalc.calculatorFavorites',
+  SHOW_FAVORITES_ONLY: 'fitCalc.showFavoritesOnly',
+  LAST_ACTIVE_CALCULATOR: 'fitCalc.lastActiveCalculator',
+
   // Unit conversion flags to prevent double conversion
   UNIT_CONVERSION_DONE: 'fitCalc.unitConversionDone',
 };

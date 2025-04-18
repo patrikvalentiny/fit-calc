@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import './App.css'
+import { getFromStorage, saveToStorage, STORAGE_KEYS } from './utils/localStorage'
 
 // Import calculator components
 import BmiCalculator from './components/BmiCalculator'
@@ -14,7 +15,15 @@ import ChestToWaistCalculator from './components/ChestToWaistCalculator'
 import Navigation from './components/Navigation'
 
 function App() {
-  const [activeCalculator, setActiveCalculator] = useState('bmi');
+  // Initialize activeCalculator with the value from localStorage or default to 'bmi'
+  const [activeCalculator, setActiveCalculator] = useState(() => 
+    getFromStorage<string>(STORAGE_KEYS.LAST_ACTIVE_CALCULATOR, 'bmi')
+  );
+
+  // Save activeCalculator to localStorage whenever it changes
+  useEffect(() => {
+    saveToStorage(STORAGE_KEYS.LAST_ACTIVE_CALCULATOR, activeCalculator);
+  }, [activeCalculator]);
 
   // Render the active calculator component
   const renderCalculator = () => {    
