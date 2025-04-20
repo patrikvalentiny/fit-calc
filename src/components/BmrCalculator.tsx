@@ -1,5 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
 import { STORAGE_KEYS, saveToStorage, getFromStorage, standardizeUnit } from '../utils/localStorage';
+import InputField from './shared/InputField';
+import UnitSelector from './shared/UnitSelector';
+import GenderSelector from './shared/GenderSelector';
+import CalculateButton from './shared/CalculateButton';
+import ErrorAlert from './shared/ErrorAlert';
+import FormulaDisplay from './shared/FormulaDisplay';
+import useKeyPress from '../hooks/useKeyPress';
 
 const BmrCalculator = () => {
   const [weight, setWeight] = useState<number | ''>('');
@@ -109,6 +116,15 @@ const BmrCalculator = () => {
       }
     }
   };
+  
+  // Handle Enter key press
+  useKeyPress('Enter', calculateBmr, [weight, height, age], loading || weight === '' || height === '' || age === '');
+
+  const getFormulaText = () => {
+    return gender === 'male' 
+      ? "BMR = 10×weight + 6.25×height - 5×age + 5" 
+      : "BMR = 10×weight + 6.25×height - 5×age - 161";
+  };
 
   const getActivityLevelLabel = () => {
     const levels = {
@@ -127,97 +143,44 @@ const BmrCalculator = () => {
       
       <div className="divider">Your Details</div>
       
-      <div className="form-control w-full mx-auto md:max-w-xs mb-4">
-        <label className="label py-2">
-          <span className="label-text font-medium">Unit of Measurement</span>
-        </label>
-        <div className="input-group">
-          <button 
-            className={`btn btn-md flex-1 ${unit === 'metric' ? 'btn-active' : ''}`}
-            onClick={() => handleUnitChange('metric')}
-          >
-            Metric
-          </button>
-          <button 
-            className={`btn btn-md flex-1 ${unit === 'imperial' ? 'btn-active' : ''}`}
-            onClick={() => handleUnitChange('imperial')}
-          >
-            Imperial
-          </button>
-        </div>
-      </div>
+      <UnitSelector
+        options={[
+          { value: 'metric', label: 'Metric' },
+          { value: 'imperial', label: 'Imperial' }
+        ]}
+        value={unit}
+        onChange={handleUnitChange}
+      />
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
-        <div className="form-control w-full">
-          <label className="label py-2">
-            <span className="label-text font-medium">Weight ({unit === 'metric' ? 'kg' : 'lbs'})</span>
-          </label>
-          <input
-            type="number"
-            inputMode="decimal"
-            placeholder={`Enter weight (${unit === 'metric' ? 'kg' : 'lbs'})`}
-            className="input input-bordered input-primary w-full h-12 text-base"
-            value={weight}
-            onChange={(e) => setWeight(e.target.value ? parseFloat(e.target.value) : '')}
-          />
-        </div>
+        <InputField
+          label="Weight"
+          value={weight}
+          onChange={setWeight}
+          unit={unit === 'metric' ? 'kg' : 'lbs'}
+        />
         
-        <div className="form-control w-full">
-          <label className="label py-2">
-            <span className="label-text font-medium">Height ({unit === 'metric' ? 'cm' : 'inches'})</span>
-          </label>
-          <input
-            type="number"
-            inputMode="decimal"
-            placeholder={`Enter height (${unit === 'metric' ? 'cm' : 'inches'})`}
-            className="input input-bordered input-primary w-full h-12 text-base"
-            value={height}
-            onChange={(e) => setHeight(e.target.value ? parseFloat(e.target.value) : '')}
-          />
-        </div>
+        <InputField
+          label="Height"
+          value={height}
+          onChange={setHeight}
+          unit={unit === 'metric' ? 'cm' : 'inches'}
+        />
         
-        <div className="form-control w-full">
-          <label className="label py-2">
-            <span className="label-text font-medium">Age (years)</span>
-          </label>
-          <input
-            type="number"
-            inputMode="decimal"
-            placeholder="Enter age"
-            className="input input-bordered input-primary w-full h-12 text-base"
-            value={age}
-            onChange={(e) => setAge(e.target.value ? parseFloat(e.target.value) : '')}
-          />
-        </div>
+        <InputField
+          label="Age"
+          value={age}
+          onChange={setAge}
+          unit="years"
+        />
         
-        <div className="form-control w-full">
-          <label className="label py-2">
-            <span className="label-text font-medium">Gender</span>
-          </label>
-          <div className="input-group">
-            <button 
-              className={`btn btn-md flex-1 ${gender === 'male' ? 'btn-active' : ''}`}
-              onClick={() => setGender('male')}
-            >
-              Male
-            </button>
-            <button 
-              className={`btn btn-md flex-1 ${gender === 'female' ? 'btn-active' : ''}`}
-              onClick={() => setGender('female')}
-            >
-              Female
-            </button>
-          </div>
-        </div>
+        <GenderSelector
+          value={gender}
+          onChange={setGender}
+        />
       </div>
       
-      <div className="text-center mt-6 mb-2">
-        <span className="text-xs text-base-content/60 font-mono break-all">
-          {gender === 'male' 
-            ? "BMR = 10×weight + 6.25×height - 5×age + 5" 
-            : "BMR = 10×weight + 6.25×height - 5×age - 161"}
-        </span>
-      </div>
+      <FormulaDisplay formula={getFormulaText()} />
       
       <div className="divider mt-6">Activity Level</div>
       
@@ -243,24 +206,14 @@ const BmrCalculator = () => {
         </div>
       </div>
       
-      <div className="flex justify-center my-6">
-        <button 
-          className="btn btn-primary h-14 w-full md:btn-wide text-base" 
-          onClick={calculateBmr}
-          disabled={loading || weight === '' || height === '' || age === ''}
-        >
-          {loading ? <span className="loading loading-spinner"></span> : 'Calculate BMR'}
-        </button>
-      </div>
+      <CalculateButton
+        onClick={calculateBmr}
+        loading={loading}
+        disabled={weight === '' || height === '' || age === ''}
+        text="Calculate BMR"
+      />
       
-      {error && (
-        <div className="alert alert-error mt-6">
-          <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          <span>{error}</span>
-        </div>
-      )}
+      <ErrorAlert message={error} />
       
       {result !== null && (
         <div className="mt-8">

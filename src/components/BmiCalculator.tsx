@@ -2,6 +2,13 @@ import { useState, useEffect, useRef } from 'react';
 import { STORAGE_KEYS, saveToStorage, getFromStorage, standardizeUnit } from '../utils/localStorage';
 import { convertWeight, convertHeight, getHeightUnit, getWeightUnit } from '../utils/calculators/unitConversion';
 import { calculateBmi, getBmiCategory, getWeightRangeForHeight } from '../utils/calculators/bmiCalculator';
+import InputField from './shared/InputField';
+import UnitSelector from './shared/UnitSelector';
+import CalculateButton from './shared/CalculateButton';
+import ErrorAlert from './shared/ErrorAlert';
+import FormulaDisplay from './shared/FormulaDisplay';
+import InfoCard from './shared/InfoCard';
+import useKeyPress from '../hooks/useKeyPress';
 
 const BmiCalculator = () => {
   const [weight, setWeight] = useState<number | ''>('');
@@ -84,6 +91,15 @@ const BmiCalculator = () => {
       }
     }
   };
+  
+  // Handle Enter key press
+  useKeyPress('Enter', handleCalculateBmi, [weight, height], loading || weight === '' || height === '');
+
+  const getFormulaText = () => {
+    return unit === 'metric' 
+      ? "BMI = weight (kg) / (height (m))²" 
+      : "BMI = 703 × weight (lbs) / (height (inches))²";
+  };
 
   return (
     <div className="p-2 sm:p-4">
@@ -91,98 +107,45 @@ const BmiCalculator = () => {
       
       <div className="divider">Measurements</div>
       
-      <div className="form-control w-full mx-auto md:max-w-xs mb-4">
-        <label className="label py-2">
-          <span className="label-text font-medium">Unit of Measurement</span>
-        </label>
-        <div className="input-group">
-          <button 
-            className={`btn btn-md flex-1 ${unit === 'metric' ? 'btn-active' : ''}`}
-            onClick={() => handleUnitChange('metric')}
-          >
-            Metric
-          </button>
-          <button 
-            className={`btn btn-md flex-1 ${unit === 'imperial' ? 'btn-active' : ''}`}
-            onClick={() => handleUnitChange('imperial')}
-          >
-            Imperial
-          </button>
-        </div>
-      </div>
+      <UnitSelector
+        options={[
+          { value: 'metric', label: 'Metric' },
+          { value: 'imperial', label: 'Imperial' }
+        ]}
+        value={unit}
+        onChange={handleUnitChange}
+      />
       
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6">
-        <div className="form-control w-full">
-          <label className="label py-2">
-            <span className="label-text font-medium">Weight ({getWeightUnit(unit)})</span>
-            <span className="label-text-alt">
-              <div className="tooltip" data-tip="Measure your weight without clothes">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="stroke-info w-5 h-5">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                </svg>
-              </div>
-            </span>
-          </label>
-          <input
-            type="number"
-            inputMode="decimal"
-            placeholder={`Enter weight (${getWeightUnit(unit)})`}
-            className="input input-bordered input-primary w-full h-12 text-base"
-            value={weight}
-            onChange={(e) => setWeight(e.target.value ? parseFloat(e.target.value) : '')}
-          />
-        </div>
+        <InputField
+          label="Weight"
+          value={weight}
+          onChange={setWeight}
+          tooltip="Measure your weight without clothes"
+          unit={getWeightUnit(unit)}
+        />
         
-        <div className="form-control w-full">
-          <label className="label py-2">
-            <span className="label-text font-medium">Height ({getHeightUnit(unit)})</span>
-            <span className="label-text-alt">
-              <div className="tooltip" data-tip="Measure your height without shoes">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="stroke-info w-5 h-5">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                </svg>
-              </div>
-            </span>
-          </label>
-          <input
-            type="number"
-            inputMode="decimal"
-            placeholder={`Enter height (${getHeightUnit(unit)})`}
-            className="input input-bordered input-primary w-full h-12 text-base"
-            value={height}
-            onChange={(e) => setHeight(e.target.value ? parseFloat(e.target.value) : '')}
-          />
-        </div>
+        <InputField
+          label="Height"
+          value={height}
+          onChange={setHeight}
+          tooltip="Measure your height without shoes"
+          unit={getHeightUnit(unit)}
+        />
       </div>
       
-      <div className="text-center mt-6 mb-4">
-        <span className="text-xs text-base-content/60 font-mono break-all">
-          {unit === 'metric' 
-            ? "BMI = weight (kg) / (height (m))²" 
-            : "BMI = 703 × weight (lbs) / (height (inches))²"}
-        </span>
-      </div>
+      <FormulaDisplay formula={getFormulaText()} className="text-center mt-6 mb-4" />
       
       <div className="divider"></div>
       
-      <div className="flex justify-center my-6">
-        <button 
-          className="btn btn-primary h-14 w-full md:btn-wide text-base" 
-          onClick={handleCalculateBmi}
-          disabled={loading || weight === '' || height === ''}
-        >
-          {loading ? <span className="loading loading-spinner"></span> : 'Calculate BMI'}
-        </button>
-      </div>
+      <CalculateButton
+        onClick={handleCalculateBmi}
+        loading={loading}
+        disabled={weight === '' || height === ''}
+        text="Calculate BMI"
+      />
       
-      {error && (
-        <div className="alert alert-error mt-6">
-          <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          <span>{error}</span>
-        </div>
-      )}
+      <ErrorAlert message={error} />
       
       {result !== null && !error && (
         <div className="mt-8">
@@ -332,15 +295,9 @@ const BmiCalculator = () => {
             </div>
           </div>
           
-          <div className="alert alert-info shadow-lg mt-6 p-4">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="stroke-current shrink-0 h-6 w-6">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-            </svg>
-            <div>
-              <h3 className="font-bold">Note</h3>
-              <div className="text-xs sm:text-sm">BMI is a simple health metric but doesn't account for muscle mass, body composition, age, or other important factors.</div>
-            </div>
-          </div>
+          <InfoCard title="Note">
+            BMI is a simple health metric but doesn't account for muscle mass, body composition, age, or other important factors.
+          </InfoCard>
         </div>
       )}
     </div>

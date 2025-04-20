@@ -1,6 +1,27 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
-  <rect width="100" height="100" rx="20" fill="#4CAF50" />
-  <text x="50" y="65" font-family="Arial, sans-serif" font-size="60" font-weight="bold" text-anchor="middle" fill="white">FC</text>
-  <path d="M70 25 L80 25 L80 75 L70 75" stroke="white" stroke-width="5" fill="none" />
-  <path d="M20 25 L30 25 L30 75 L20 75" stroke="white" stroke-width="5" fill="none" />
+  <!-- Background with gradient -->
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#43A047" />
+      <stop offset="100%" stop-color="#2E7D32" />
+    </linearGradient>
+    <!-- Subtle texture overlay -->
+    <pattern id="texture" width="100" height="100" patternUnits="userSpaceOnUse">
+      <rect width="100" height="100" fill="url(#bgGradient)"/>
+      <rect width="100" height="100" fill="white" opacity="0.05"/>
+    </pattern>
+  </defs>
+  
+  <!-- Main background -->
+  <rect width="100" height="100" rx="15" fill="url(#texture)" />
+  
+  <!-- Dumbbell icon - repositioned and enlarged -->
+  <g transform="translate(50, 50) scale(0.7)">
+    <rect x="-40" y="-5" width="80" height="10" rx="3" fill="white"/>
+    <circle cx="-30" cy="0" r="15" fill="white"/>
+    <circle cx="30" cy="0" r="15" fill="white"/>
+  </g>
+  
+  <!-- Subtle highlight -->
+  <rect x="5" y="5" width="90" height="10" rx="5" fill="white" opacity="0.1"/>
 </svg>

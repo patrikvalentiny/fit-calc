@@ -1,5 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { STORAGE_KEYS, saveToStorage, getFromStorage } from '../utils/localStorage';
+import InputField from './shared/InputField';
+import CalculateButton from './shared/CalculateButton';
+import ErrorAlert from './shared/ErrorAlert';
+import useKeyPress from '../hooks/useKeyPress';
 
 const OneRepMaxCalculator = () => {
   const [weight, setWeight] = useState<number | ''>('');
@@ -74,6 +78,9 @@ const OneRepMaxCalculator = () => {
     }
   };
 
+  // Handle Enter key press
+  useKeyPress('Enter', calculateOneRepMax, [weight, reps], loading || weight === '' || reps === '');
+
   return (
     <div className="p-2 sm:p-4">
       <h2 className="text-xl md:text-2xl font-bold mb-6 text-center">One Rep Max Calculator</h2>
@@ -81,47 +88,22 @@ const OneRepMaxCalculator = () => {
       <div className="divider">Measurements</div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-        <div className="form-control w-full">
-          <label className="label py-2">
-            <span className="label-text font-medium">Weight lifted (kg)</span>
-            <span className="label-text-alt">
-              <div className="tooltip" data-tip="The weight you lifted for multiple reps">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="stroke-info w-5 h-5">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                </svg>
-              </div>
-            </span>
-          </label>
-          <input
-            type="number"
-            inputMode="decimal"
-            placeholder="Enter weight"
-            className="input input-bordered input-primary w-full h-12 text-base"
-            value={weight}
-            onChange={(e) => setWeight(e.target.value ? parseFloat(e.target.value) : '')} />
-        </div>
+        <InputField
+          label="Weight lifted"
+          value={weight}
+          onChange={setWeight}
+          tooltip="The weight you lifted for multiple reps"
+          unit="kg"
+        />
 
-        <div className="form-control w-full">
-          <label className="label py-2">
-            <span className="label-text font-medium">Repetitions</span>
-            <span className="label-text-alt">
-              <div className="tooltip" data-tip="Number of reps performed with this weight">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="stroke-info w-5 h-5">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                </svg>
-              </div>
-            </span>
-          </label>
-          <input
-            type="number"
-            inputMode="decimal"
-            placeholder="Enter reps performed"
-            className="input input-bordered input-primary w-full h-12 text-base"
-            min="1"
-            max="36"
-            value={reps}
-            onChange={(e) => setReps(e.target.value ? parseFloat(e.target.value) : '')} />
-        </div>
+        <InputField
+          label="Repetitions"
+          value={reps}
+          onChange={setReps}
+          tooltip="Number of reps performed with this weight"
+          min={1}
+          max={36}
+        />
       </div>
 
       <div className="form-control w-full mt-6">
@@ -162,27 +144,17 @@ const OneRepMaxCalculator = () => {
 
       <div className="divider mt-4"></div>
 
-      <div className="flex justify-center my-6">
-        <button
-          className="btn btn-primary h-14 w-full md:btn-wide text-base"
-          onClick={calculateOneRepMax}
-          disabled={loading || weight === '' || reps === ''}
-        >
-          {loading ? <span className="loading loading-spinner"></span> : 'Calculate 1RM'}
-        </button>
-      </div>
+      <CalculateButton
+        onClick={calculateOneRepMax}
+        loading={loading}
+        disabled={weight === '' || reps === ''}
+        text="Calculate 1RM"
+      />
 
-      {error && (
-        <div className="alert alert-error mt-6">
-          <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          <span>{error}</span>
-        </div>
-      )}
+      <ErrorAlert message={error} />
 
       {result !== null && (
-        <div className="mt-8">
+        <><div className="mt-8">
           <div className="stats bg-primary text-primary-content shadow w-full">
             <div className="stat p-4 text-center">
               <div className="stat-title text-primary-content/80 text-sm sm:text-base">Your estimated one rep max</div>
@@ -208,7 +180,7 @@ const OneRepMaxCalculator = () => {
                   </div>
                 </div>
               </div>
-              
+
               <div className="card bg-base-100 shadow-sm">
                 <div className="card-body p-3">
                   <div className="flex justify-between items-center">
@@ -221,7 +193,7 @@ const OneRepMaxCalculator = () => {
                   </div>
                 </div>
               </div>
-              
+
               <div className="card bg-base-100 shadow-sm">
                 <div className="card-body p-3">
                   <div className="flex justify-between items-center">
@@ -234,7 +206,7 @@ const OneRepMaxCalculator = () => {
                   </div>
                 </div>
               </div>
-              
+
               <div className="card bg-base-100 shadow-sm">
                 <div className="card-body p-3">
                   <div className="flex justify-between items-center">
@@ -263,7 +235,7 @@ const OneRepMaxCalculator = () => {
                 </thead>
                 <tbody>
                   <tr className="hover">
-                    <td>95%</td>                  
+                    <td>95%</td>
                     <td className="font-mono">{(result * 0.95).toFixed(1)}</td>
                     <td><span className="badge badge-secondary">2-3 reps</span> Power/Strength</td>
                   </tr>
@@ -286,8 +258,8 @@ const OneRepMaxCalculator = () => {
               </table>
             </div>
           </div>
-          
-          <div className="alert alert-info shadow-lg mt-6 p-4">
+          </div>
+        <div className="alert alert-info shadow-lg mt-6 p-4">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="stroke-current shrink-0 h-6 w-6">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
             </svg>
@@ -295,8 +267,7 @@ const OneRepMaxCalculator = () => {
               <h3 className="font-bold">Training Tip</h3>
               <div className="text-xs sm:text-sm">For strength, train with heavier weights (85-95% of 1RM) and lower reps. For muscle size, use moderate weights (65-75% of 1RM) with higher reps.</div>
             </div>
-          </div>
-        </div>
+          </div></>
       )}
     </div>
   );

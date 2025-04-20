@@ -11,6 +11,13 @@ import {
   calculateFatMass,
   calculateLeanMass
 } from '../utils/calculators/bodyCompositionCalculator';
+import InputField from './shared/InputField';
+import UnitSelector from './shared/UnitSelector';
+import GenderSelector from './shared/GenderSelector';
+import CalculateButton from './shared/CalculateButton';
+import ErrorAlert from './shared/ErrorAlert';
+import FormulaDisplay from './shared/FormulaDisplay';
+import useKeyPress from '../hooks/useKeyPress';
 
 // Types
 interface CategoryType {
@@ -173,220 +180,107 @@ const BodyFatCalculator = () => {
     }
   };
 
+  // Handle Enter key press
+  useKeyPress(
+    'Enter', 
+    handleCalculateBodyFat, 
+    [height, waist, neck, hip, gender], 
+    loading || height === '' || waist === '' || neck === '' || (gender === 'female' && hip === '')
+  );
+
+  const getFormulaText = () => {
+    return gender === 'male'
+      ? "Body Fat % = 86.01 × log10(waist - neck) - 70.041 × log10(height) + 36.76"
+      : "Body Fat % = 163.205 × log10(waist + hip - neck) - 97.684 × log10(height) - 78.387";
+  };
+
   return (
     <div className="p-2 sm:p-4">
       <h2 className="text-xl md:text-2xl font-bold mb-6 text-center">Body Fat Calculator</h2>
 
       <div className="divider">Measurements</div>
 
-      <div className="form-control w-full mx-auto md:max-w-xs mb-4">
-        <label className="label py-2">
-          <span className="label-text font-medium">Unit of Measurement</span>
-        </label>
-        <div className="input-group">
-          <button
-            className={`btn btn-md flex-1 ${unit === 'cm' ? 'btn-active' : ''}`}
-            onClick={() => handleUnitChange('cm')}
-          >
-            Centimeters
-          </button>
-          <button
-            className={`btn btn-md flex-1 ${unit === 'inches' ? 'btn-active' : ''}`}
-            onClick={() => handleUnitChange('inches')}
-          >
-            Inches
-          </button>
-        </div>
-      </div>
+      <UnitSelector
+        options={[
+          { value: 'cm', label: 'Centimeters' },
+          { value: 'inches', label: 'Inches' }
+        ]}
+        value={unit}
+        onChange={handleUnitChange}
+      />
 
-      <div className="form-control w-full mx-auto md:max-w-xs mt-6">
-        <label className="label py-2">
-          <span className="label-text font-medium">Gender</span>
-        </label>
-        <div className="input-group">
-          <button
-            className={`btn btn-md flex-1 ${gender === 'male' ? 'btn-active' : ''}`}
-            onClick={() => setGender('male')}
-          >
-            Male
-          </button>
-          <button
-            className={`btn btn-md flex-1 ${gender === 'female' ? 'btn-active' : ''}`}
-            onClick={() => setGender('female')}
-          >
-            Female
-          </button>
-        </div>
-        <label className="label">
-          <span className="label-text-alt text-xs">Calculation formulas differ by gender</span>
-        </label>
-      </div>
+      <GenderSelector
+        value={gender}
+        onChange={setGender}
+        className="w-full mx-auto md:max-w-xs mt-6"
+        note="Calculation formulas differ by gender"
+      />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mt-4">
-        <div className="form-control w-full">
-          <label className="label py-2">
-            <span className="label-text font-medium">Height ({unit})</span>
-            <span className="label-text-alt">
-              <div className="tooltip" data-tip="Measure your height without shoes">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="stroke-info w-5 h-5">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                </svg>
-              </div>
-            </span>
-          </label>
-          <input
-            type="number"
-            inputMode="decimal"
-            placeholder={`Enter height (${unit})`}
-            className="input input-bordered input-primary w-full h-12 text-base"
-            value={height}
-            onChange={(e) => setHeight(e.target.value ? parseFloat(e.target.value) : '')}
-          />
-        </div>
+        <InputField
+          label="Height"
+          value={height}
+          onChange={setHeight}
+          tooltip="Measure your height without shoes"
+          unit={unit}
+        />
 
-        <div className="form-control w-full">
-          <label className="label py-2">
-            <span className="label-text font-medium">Weight ({unit === 'cm' ? 'kg' : 'lbs'})</span>
-            <span className="label-text-alt">
-              <div className="tooltip" data-tip="Enter your current weight">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="stroke-info w-5 h-5">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                </svg>
-              </div>
-            </span>
-          </label>
-          <input
-            type="number"
-            inputMode="decimal"
-            placeholder={`Enter weight (${unit === 'cm' ? 'kg' : 'lbs'})`}
-            className="input input-bordered input-primary w-full h-12 text-base"
-            value={weight}
-            onChange={(e) => setWeight(e.target.value ? parseFloat(e.target.value) : '')}
-          />
-        </div>
+        <InputField
+          label="Weight"
+          value={weight}
+          onChange={setWeight}
+          tooltip="Enter your current weight"
+          unit={unit === 'cm' ? 'kg' : 'lbs'}
+        />
 
-        <div className="form-control w-full">
-          <label className="label py-2">
-            <span className="label-text font-medium">Age</span>
-            <span className="label-text-alt">
-              <div className="tooltip" data-tip="Your age in years">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="stroke-info w-5 h-5">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                </svg>
-              </div>
-            </span>
-          </label>
-          <input
-            type="number"
-            inputMode="decimal"
-            placeholder="Enter age (years)"
-            className="input input-bordered input-primary w-full h-12 text-base"
-            value={age}
-            onChange={(e) => setAge(e.target.value ? parseFloat(e.target.value) : '')}
-          />
-        </div>
+        <InputField
+          label="Age"
+          value={age}
+          onChange={setAge}
+          tooltip="Your age in years"
+          unit="years"
+        />
 
-        <div className="form-control w-full">
-          <label className="label py-2">
-            <span className="label-text font-medium">Neck ({unit})</span>
-            <span className="label-text-alt">
-              <div className="tooltip" data-tip="Measure your neck below the larynx (Adam's apple)">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="stroke-info w-5 h-5">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                </svg>
-              </div>
-            </span>
-          </label>
-          <input
-            type="number"
-            inputMode="decimal"
-            placeholder={`Enter neck circumference (${unit})`}
-            className="input input-bordered input-primary w-full h-12 text-base"
-            value={neck}
-            onChange={(e) => setNeck(e.target.value ? parseFloat(e.target.value) : '')}
-          />
-        </div>
+        <InputField
+          label="Neck"
+          value={neck}
+          onChange={setNeck}
+          tooltip="Measure your neck below the larynx (Adam's apple)"
+          unit={unit}
+        />
 
-        <div className="form-control w-full">
-          <label className="label py-2">
-            <span className="label-text font-medium">Waist ({unit})</span>
-            <span className="label-text-alt">
-              <div className="tooltip" data-tip="Measure at your natural waist (around navel)">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="stroke-info w-5 h-5">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                </svg>
-              </div>
-            </span>
-          </label>
-          <input
-            type="number"
-            inputMode="decimal"
-            placeholder={`Enter waist circumference (${unit})`}
-            className="input input-bordered input-primary w-full h-12 text-base"
-            value={waist}
-            onChange={(e) => setWaist(e.target.value ? parseFloat(e.target.value) : '')}
-          />
-        </div>
+        <InputField
+          label="Waist"
+          value={waist}
+          onChange={setWaist}
+          tooltip="Measure at your natural waist (around navel)"
+          unit={unit}
+        />
 
         {gender === 'female' && (
-          <div className="form-control w-full">
-            <label className="label py-2">
-              <span className="label-text font-medium">Hip ({unit})</span>
-              <span className="label-text-alt">
-                <div className="tooltip" data-tip="Measure at the widest part of your hips">
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="stroke-info w-5 h-5">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                  </svg>
-                </div>
-              </span>
-            </label>
-            <input
-              type="number"
-              inputMode="decimal"
-              placeholder={`Enter hip circumference (${unit})`}
-              className="input input-bordered input-primary w-full h-12 text-base"
-              value={hip}
-              onChange={(e) => setHip(e.target.value ? parseFloat(e.target.value) : '')}
-            />
-          </div>
+          <InputField
+            label="Hip"
+            value={hip}
+            onChange={setHip}
+            tooltip="Measure at the widest part of your hips"
+            unit={unit}
+          />
         )}
       </div>
 
-      <div className="text-center mt-6 mb-3">
-        <span className="text-xs text-base-content/60 font-mono break-all">
-          {gender === 'male'
-            ? "Body Fat % = 86.01 × log10(waist - neck) - 70.041 × log10(height) + 36.76"
-            : "Body Fat % = 163.205 × log10(waist + hip - neck) - 97.684 × log10(height) - 78.387"}
-        </span>
-      </div>
+      <FormulaDisplay formula={getFormulaText()} />
 
       <div className="divider"></div>
 
-      <div className="flex justify-center my-6">
-        <button
-          className="btn btn-primary h-14 w-full md:btn-wide text-base"
-          onClick={handleCalculateBodyFat}
-          disabled={loading || height === '' || waist === '' || neck === '' || (gender === 'female' && hip === '')}
-        >
-          {loading ? (
-            <>
-              <span className="loading loading-spinner"></span>
-              <span className="ml-2">Calculating...</span>
-            </>
-          ) : (
-            'Calculate Body Fat'
-          )}
-        </button>
-      </div>
+      <CalculateButton
+        onClick={handleCalculateBodyFat}
+        loading={loading}
+        disabled={height === '' || waist === '' || neck === '' || (gender === 'female' && hip === '')}
+        text="Calculate Body Fat"
+        loadingText="Calculating..."
+      />
 
-      {error && (
-        <div className="alert alert-error mt-6">
-          <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          <span>{error}</span>
-        </div>
-      )}
+      <ErrorAlert message={error} />
 
       {result !== null && !error && (
         <div className="mt-8">
